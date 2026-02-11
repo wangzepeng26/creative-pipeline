@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE/Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Debug files
+debug_*
+
+# Runtime data
+.browser_data/
+
+# Temporary files
+temp_*
+*.tmp
+
+# Test coverage
+coverage/
+
+# Local development
+*.local
+
+# Cache directories
+.cache/
+.npm/

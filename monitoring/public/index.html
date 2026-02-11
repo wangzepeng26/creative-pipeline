@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能监控仪表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metrics-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .error-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .error-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .error-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>系统性能监控</h1>
+    
+    <div class="metrics-summary" id="currentMetrics">
+        <h2>当前指标</h2>
+        <div id="metricsData"></div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="chart-container">
+            <h2>CPU 使用率</h2>
+            <canvas id="cpuChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>内存使用率</h2>
+            <canvas id="memoryChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>API 响应时间</h2>
+            <canvas id="apiLatencyChart"></canvas>
+        </div>
+    </div>
+
+    <div class="error-list">
+        <h2>错误日志分析</h2>
+        <div id="errorAnalysis"></div>
+    </div>
+
+    <script>
+        // 图表配置和数据
+        const chartConfigs = {
+            cpu: {
+                ctx: document.getElementById('cpuChart'),
+                chart: null,
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU Usage %',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            },
+            memory: {
+                ctx: document.getElementById('memoryChart'),
+                chart: null,
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Memory Usage %',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                }
+            },
+            apiLatency: {
+                ctx: document.getElementById('apiLatencyChart'),
+                chart: null,
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }]
+                }
+            }
+        };
+
+        // 初始化图表
+        function initCharts() {
+            for (const [key, config] of Object.entries(chartConfigs)) {
+                config.chart = new Chart(config.ctx, {
+                    type: 'line',
+                    data: config.data,
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 更新图表数据
+        async function updateCharts() {
+            try {
+                // 获取当前指标
+                const currentMetrics = await fetch('/api/metrics/current').then(r => r.json());
+                updateCurrentMetrics(currentMetrics);
+
+                // 获取历史数据
+                for (const type of Object.keys(chartConfigs)) {
+                    const data = await fetch(`/api/metrics/historical/${type}?duration=3600000`).then(r => r.json());
+                    updateChartData(type, data);
+                }
+
+                // 获取错误分析
+                const errorAnalysis = await fetch('/api/errors/analysis').then(r => r.json());
+                updateErrorAnalysis(errorAnalysis);
+
+            } catch (err) {
+                console.error('Error updating charts:', err);
+            }
+        }
+
+        // 更新当前指标显示
+        function updateCurrentMetrics(metrics) {
+            const metricsHtml = `
+                <p>CPU: ${metrics.cpu ? metrics.cpu.usage.toFixed(2) + '%' : 'N/A'}</p>
+                <p>内存: ${metrics.memory ? metrics.memory.usage.toFixed(2) + '%' : 'N/A'}</p>
+                <p>API延迟: ${metrics.apiLatency ? metrics.apiLatency.value + 'ms' : 'N/A'}</p>
+            `;
+            document.getElementById('metricsData').innerHTML = metricsHtml;
+        }
+
+        // 更新图表数据
+        function updateChartData(type, data) {
+            const config = chartConfigs[type];
+            const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+            const values = data.map(d => d.usage || d.value);
+
+            config.data.labels = labels;
+            config.data.datasets[0].data = values;
+            config.chart.update();
+        }
+
+        // 更新错误分析显示
+        function updateErrorAnalysis(analysis) {
+            const errorHtml = `
+                <h3>错误统计</h3>
+                <p>总计: ${analysis.total} 条错误</p>
+                <h3>按级别统计</h3>
+                <ul>
+                    ${Object.entries(analysis.byLevel)
+                        .map(([level, count]) => `<li>${level}: ${count}</li>`)
+                        .join('')}
+                </ul>
+                <h3>常见错误</h3>
+                <ul>
+                    ${analysis.topErrors
+                        .map(({error, count}) => `<li>${error[1]} (${error[0]}) - ${count}次</li>`)
+                        .join('')}
+                </ul>
+            `;
+            document.getElementById('errorAnalysis').innerHTML = errorHtml;
+        }
+
+        // 初始化并开始定时更新
+        initCharts();
+        updateCharts();
+        setInterval(updateCharts, 60000); // 每分钟更新一次
+    </script>
+</body>
+</html>

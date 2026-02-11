@@ -1,0 +1,13 @@
+{
+  "name": "agent-monitor",
+  "version": "1.0.0",
+  "description": "Agent monitoring system with core monitoring, security, and automation features",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "winston": "^3.11.0"
+  }
+}

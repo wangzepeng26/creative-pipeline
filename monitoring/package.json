@@ -1,0 +1,17 @@
+{
+  "name": "system-monitoring",
+  "version": "1.0.0",
+  "description": "System performance monitoring and error tracking",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "chart.js": "^4.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
